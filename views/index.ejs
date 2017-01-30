@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <!-- Declaration of the encoding to be used for the html doc, may need to change utf-8 to ISO-8859-1.
+    Both apparently encode ASCII in the same manner, UTF-8 is a multibyte encoding vs ISo 8859-1's single byte encoding -->
+		<title>newsClone 32</title>
+		
+		<link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+		<!-- Loads the hosted bootstrap library -->
+		<style> .glyphicon-thumbs-up {cursor:pointer} </style>
+		<!-- ??? -->
+		
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js"></script>
+		<!-- Loads the hosted angular library from Google -->
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.3.2/angular-ui-router.js"></script>
+        <!-- Loads the ui-router library, using this instead of ngroute due to extra features (explored in the tutorial) -->
+		<script src="/javascripts/angularApp.js"></script>
+		<!-- Loads our local javascript file-->
+		
+	</head>
+    <body ng-app="newsClone32" > <!--  removed 'ng-controller="MainCtrl"' from the body tag when placing in ui-view -->
+    <!-- Select which application and which controller scripts to use -->
+	
+    
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3">
+                
+                <ui-view></ui-view>            
+                <!-- correct placement? -->
+                    
+
+            </div>
+        </div>
+        
+        <script type="text/ng-template" id="/home.html">
+            <div class="page-header">
+                <h1>newsClone32</h1>
+            </div>
+             <!-- rest of template? -->
+                    
+                    <div ng-repeat="post in posts | orderBy: '-upvotes'">
+                    <!-- ng-repeat is a repeater function where the html element (in this case, this div tag) is repeated for every data object within a collection/array (each post object in the posts collection) -->
+                    <!-- orderBy is a built in filter offered by angularjs (the negative infront of upvotes denotes descending order, if you were to remove the negative the filter would sort via ascending), custom filters also applicable -->
+                    
+                        <span class="glyphicon glyphicon-thumbs-up" ng-click="incrementUpvotes(post)"></span>
+                        <!-- 'glyphicon glyphicon-thumbs-up' loads a glyphicon from the Halflings set (made available for free to bootstrap). http://glyphicons.com/ -->
+                        {{post.upvotes}}
+                        
+                        <span style="font-size:20px; margin-left:10px">
+                        <!-- Example of css styling within html, generally you want to avoid this afaik (keep css in it's own stylesheet?) -->
+                            
+                            <a ng-show="post.link" href="{{post.link}}">
+                                {{post.title}}
+                            </a>
+                           
+                            <span ng-hide="post.link">
+                                {{post.title}}
+                            </span>
+                            
+                            <span>
+                                <a href="#/posts/{{post._id}}">Comments</a>
+                            </span>
+                            
+                            <!--
+                            <span ng-click="incrementUpvotes(post)">^</span>
+                            -->
+                            <!-- the ^ symbol is a stand in for an up button, clicking on the plain character that appears triggers the incrementUpvotes function (with the post passed as an arg) -->
+                            
+                            <!-- {{post.title}} - upvotes: {{post.upvotes}} -->
+                            <!-- both title and upvotes are attributes of each post.
+                            if you were to call post on it's own, it would show all attributes
+                            e.g. {"title":"post1","upvotes":5} -->
+                        </span>
+                    </div>
+                        
+                    
+                    <form ng-submit="addPost()" style="margin-top:30px">
+                    <!-- 'submit' is a directive/function from the 'ng' module of angularjs.
+                    binds an angularjs expression to onsubmit events (of the tag? ie only triggers if the tag is capable of doing a submit).
+                    tried placing 'ng-submit="addPost()"' in the glyphicon-thumbs-up span and it didn't seem to trigger -->
+                        <h3>Add a new post</h3>
+                        <div class="form-group">
+                            <input class="form-control" type="text" placeholder="Title" ng-model="title"></input>
+                        </div>
+                        <div class="form-group">
+                            <input class="form-control" type="text" placeholder="Link" ng-model="link"></input>
+                        </div>
+                        <button class="btn btn-primary" type="submit">Post Button via Form</button>
+                        <!-- btn-primary is a style of button from bootstrap's btn class (can be used with 'a','button' and 'input' tags -->
+                    </form>
+
+                    
+                    <div>
+                        <button ng-click="addPost()">Post Button</button>
+                    </div>
+             
+        </script>
+        
+        <script type="text/ng-template" id="/posts.html">
+            <div class="page-header">
+                <h3>
+                    <a ng-show="post.link" href="{{post.link}}">
+                        {{post.link}}
+                    </a>
+                    <span ng-hide="post.link">
+                        {{post.title}}
+                    </span>
+                </h3>
+            </div>
+            
+            <div ng-repeat="comment in post.comments | orderBy:'-upvotes'">
+                <span class="glyphicon glyphicon-thumbs-up" ng-click="incrementUpvotes(comment)"></span>
+                    {{comment.upvotes}} - by {{comment.author}}
+                <span style="font-size:20px; margin-left:10px">
+                    {{comment.body}}
+                </span>
+            </div>
+            
+            <form ng-submit="addComment()" style="margin-top:30px;">
+                <h3>Add a new comment</h3>
+                
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Comment" ng-model="body"></input>
+                </div>
+                <button type="submit" class="btn btn-primary">Post comment</button>
+            </form>
+        </script>
+                    
+	</body>
+</html>
