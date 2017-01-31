@@ -16,6 +16,7 @@ app.config([
                         return posts.getAll();
                     }]
                 }
+            /* potentailly remove the ';' below and the other states may not need '$stateProvider' */
             });
 
         
@@ -33,6 +34,30 @@ app.config([
                 }
             });
             
+        $stateProvider
+            .state('login', {
+                url: '/login',
+                templateUrl: '/login.html',
+                controller: 'AuthCtrl',
+                onEnter: ['$state', 'auth', function($state, auth){
+                    if(auth.isLoggedIn()){
+                        $state.go('home');
+                    }
+                }]
+            });
+
+        $stateProvider
+            .state('register', {
+                url: '/register',
+                templateUrl: '/register.html',
+                controller: 'AuthCtrl',
+                onEnter: ['$state', 'auth', function($state, auth){
+                    if(auth.isLoggedIn()){
+                        $state.go('home');
+                    }
+                }]
+            });
+            
         $urlRouterProvider.otherwise('home');
     /* the state is named 'home' located at '/home' and will be controlled by 'MainCtrl'.
     if the app receives an undefined url it will redirect to '/home.html' */
@@ -40,7 +65,72 @@ app.config([
     
 }]);
 
-app.factory('posts', ['$http', function($http){
+/* factory for authentication */
+app.factory('auth',['$http', '$window', function($http, $window){
+    var auth = {};
+    
+    auth.saveToken = function(token){
+        $window.localStorage['newsClone32-token'] = token;
+    };
+    
+    auth.getToken = function(){
+        return $window.localStorage['newsClone32-token'];
+    /* for some reason the tutorial doesn't have a ';' after the '}' closing bracket? */
+    /* need to double check but semi-colons after '}' may be entirely optional */
+    /* http://stackoverflow.com/questions/17036135/why-is-it-that-semicolons-are-not-used-after-if-else-statements */
+    /* semi-colons following a '}' will just be ignored? */
+    }
+    
+    auth.isLoggedIn = function(){
+        var token = auth.getToken();
+       
+        if(token){
+            /* 'atob()' decodes a base-64 encoded string back to plain text, conversly 'btoa()' converts a string to base-64 encoding */
+            var payload = JSON.parse($window.atob(token.split('.')[1]));
+           
+            return payload.exp > Date.now() / 1000;
+        
+        /* having ';' after the curly closing the 'if' statement causes the 'else' to become invalida */
+        /* the page becomes blank */
+        } else {
+            return false;
+        /* may need to remove ';' */
+        /* ';' here seems to be ok (i.e. with or without still works) */
+        };
+    };
+    
+    auth.currentUser = function(){
+        if(auth.isLoggedIn()){
+            var token = auth.getToken();
+            var payload = JSON.parse($window.atob(token.split('.')[1]));
+            
+            return payload.username;
+        }
+    };
+    
+    auth.register = function(user){
+        return $http.post('/register', user).success(function(data){
+            auth.saveToken(data.token);
+        });
+    };
+    
+    auth.logIn = function(user){
+        return $http.post('/login', user).success(function(data){
+            auth.saveToken(data.token);
+        });
+    };
+    
+    auth.logOut = function(){
+        $window.localStorage.removeItem('newsClone32-token');
+    };
+    
+    return auth;
+}]);
+/* factory for authentication */
+
+
+/* inject auth service to posts service */
+app.factory('posts', ['$http', 'auth', function($http, auth){
     /*  */
     var o = {
         posts: []
@@ -56,13 +146,17 @@ app.factory('posts', ['$http', function($http){
     // getAll function to retrieve posts from the posts service
     
     o.create = function(post){
-        return $http.post('/posts', post).success(function(data){
+        return $http.post('/posts', post,{
+            headers: {Authorization: 'Bearer '+auth.getToken()}
+        }).success(function(data){
             o.posts.push(data);
         });
     };
     
     o.upvote = function(post){
-        return $http.put('/posts/' + post._id+'/upvote')
+        return $http.put('/posts/' + post._id+'/upvote', null, {
+            headers: {Authorization: 'Bearer '+auth.getToken()}
+        })
         .success(function(data){
             post.upvotes +=1;
         });
@@ -76,29 +170,35 @@ app.factory('posts', ['$http', function($http){
     };
     
     o.addComment = function(id, comment){
-        return $http.post('/posts/' + id + '/comments', comment);
+        return $http.post('/posts/' + id + '/comments', comment,{
+            headers: {Authorization: 'Bearer '+auth.getToken()}
+        });
     };
     
     
     o.upvoteComment = function(post, comment){
-        return $http.put('/posts/' + post._id + '/comments/' + comment._id + '/upvote').success(function(data){
+        return $http.put('/posts/' + post._id + '/comments/' + comment._id + '/upvote', null,{
+            headers: {Authorization: 'Bearer '+auth.getToken()}
+        }).success(function(data){
             comment.upvotes += 1;
         });
     };
     
     
     return o;
-    /* A new object that has an array property named 'posts'. the 'return obj' is to expose the 'obj' object to any other angular module thata injects it.
-    Exposing the post array directly also works (reason for placing it inside a obj is to apparently allow for the addition of other objects and methods later?) */
+    /* A new object that has an array property named 'posts'. the 'return o' is to expose the 'o' object to any other angular module thata injects it.
+    Exposing the post array directly also works (reason for placing it inside a 'o' is to apparently allow for the addition of other objects and methods later?) */
     
 }]);
+
 
 app.controller('MainCtrl', [
 	'$scope',
 	/* $scope is a key word that the html file will look for in the js file? need confirmation. changing to %scop does not work */
     'posts',
     /* "injecting" 'posts' to the 'MainCtrl' so 'posts' will be accessible via 'MainStrl' */
-	function($scope, posts){
+    'auth',
+	function($scope, posts, auth){
         /* added 'posts' here because ??? */
 		$scope.test = 'Hello world!';
 
@@ -112,6 +212,7 @@ app.controller('MainCtrl', [
 		];
         */
         
+        $scope.isLoggedIn = auth.isLoggedIn;
 
         $scope.posts = posts.posts;
         /* two-way data binding only applies to variables within 'scope' so we bind the the 'posts' array within the 'posts' factory to the '$scope.posts' variable? 
@@ -153,29 +254,68 @@ app.controller('MainCtrl', [
 ]);
 
 app.controller('PostsCtrl', [
-'$scope',
-'posts',
-'post',
-function($scope, posts, post){
-    // $scope.post = posts.posts[$stateParams.id];  why?
-    $scope.post = post;
-    $scope.addComment=function(){
-        if($scope.body==='') {return;}
-        posts.addComment(post._id, {
-            body: $scope.body,
-            author: 'user',
-        }).success(function(comment) {
-            $scope.post.comments.push(comment);
-        });
-        $scope.body = '';
+    '$scope',
+    'posts',
+    'post',
+    'auth',
+    function($scope, posts, post, auth){
+        // $scope.post = posts.posts[$stateParams.id];  why?
+        $scope.post = post;
+        
+        $scope.isLoggedIn = auth.isLoggedIn;
+        
+        $scope.addComment=function(){
+            if($scope.body==='') {return;}
+            posts.addComment(post._id, {
+                body: $scope.body,
+                author: 'user',
+            }).success(function(comment) {
+                $scope.post.comments.push(comment);
+            });
+            $scope.body = '';
+        }
+        
+        
+        $scope.incrementUpvotes = function(comment){
+            posts.upvoteComment(post, comment);
+        };
+         
+         
+         /* Looks like I need the incrementUpvotes function here for comment voting? */
+        
     }
-    
-    
-    $scope.incrementUpvotes = function(comment){
-		posts.upvoteComment(post, comment);
-	};
-     
-     
-     /* Looks like I need the incrementUpvotes function here for comment voting? */
-    
+]);
+
+app.controller('AuthCtrl',[
+    '$scope',
+    '$state',
+    'auth',
+    function($scope, $state, auth){
+        $scope.user = {};
+        
+        $scope.register = function(){
+            auth.register($scope.user).error(function(error){
+                $scope.error = error;
+            }).then(function(){
+                $state.go('home');
+            });
+        };
+        
+        $scope.logIn = function(){
+            auth.logIn($scope.user).error(function(error){
+                $scope.error = error;
+            }).then(function(){
+                $state.go('home');
+            });
+        };
+    }
+]);
+
+app.controller('NavCtrl', [
+    '$scope',
+    'auth',
+    function($scope, auth){
+        $scope.isLoggedIn = auth.isLoggedIn;
+        $scope.currentUser = auth.currentUser;
+        $scope.logOut = auth.logOut;
 }]);

@@ -2,8 +2,12 @@
 // http://stackoverflow.com/questions/29552228/testing-rest-routes-with-curl-data-returns-404
 // also use double quotes for url when on windows
 var mongoose = require('mongoose');
+var passport = require('passport');
 require('./models/Posts');
 require('./models/Comments');
+require('./models/Users');
+// require for passport has to be called after the User model?
+require('./config/passport');
 
 
 
@@ -46,6 +50,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+// initialize passport after express.static?
+app.use(passport.initialize());
 
 app.use('/', index);
 app.use('/users', users);
