@@ -1,7 +1,16 @@
+// Creates a new module named 'newsClone32' with the 'ui.router' module "injected"
+// (the dependency or service is passed by reference) in.
+// Below the 'app' declaration are config, factory, and controller code blocks.
+// These define the functionality of the application.
+// If the 'app' declaration is called again (past the config/factory/controller blocks)
+// , all of the previously declared code will be lost (a clean restart?).
+// Called into use in the body tag of 'index.ejs' (an embedded javascript file? May want to look into done.js)
+// https://docs.angularjs.org/guide/module
 var app = angular.module ('newsClone32', ['ui.router']);
 
+// If we remove the semi-colon from above, we should be able to just call '.config' instead of 'app.config' below.
 app.config([
-/* a 'config' block to configure the home state */
+/* a 'config' block to configure the different states */
     '$stateProvider',
     '$urlRouterProvider',
     function($stateProvider, $urlRouterProvider){
@@ -191,7 +200,14 @@ app.factory('posts', ['$http', 'auth', function($http, auth){
     
 }]);
 
-
+// $scope, posts and auth are injected into this controller?
+// Then in the 'function' call, the parameters passed in ($scope, posts, and auth) are ?linked? to the
+// injected '$scope' , 'posts' and 'auth' just before 'function'.
+// Can they just be named any other variables? e.g 'function(scopeVar,postsVar,authVar)'?
+//
+// I don't think we can do 'app.controller('MainCtrl', function($scope, posts, auth)' because the 3 parameters don't have providers available by default?
+// e.g. $http: $HttpProvider, $controller: $ControllerProvider, etc. in angular.js under $provide.provider
+// https://www.youtube.com/watch?v=NnB2NBtoeAY&list=PLP6DbQBkn9ymGQh2qpk9ImLHdSH5T7yw7&index=26
 app.controller('MainCtrl', [
 	'$scope',
 	/* $scope is a key word that the html file will look for in the js file? need confirmation. changing to %scop does not work */
